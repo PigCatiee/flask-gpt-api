@@ -29,7 +29,10 @@ def save_dialogue():
     data = request.get_json()
     prompt_text = data.get("prompt_text")
     user_response = data.get("user_response")
-    timestamp = data.get("timestamp")
+
+    # 取得 API 接收到的當地時間（台灣）
+    tz = pytz.timezone("Asia/Taipei")
+    timestamp = datetime.now(tz).isoformat()
 
     # 確認資料有被接收到
     print("✅ 收到資料：")
