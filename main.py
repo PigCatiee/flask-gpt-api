@@ -1,6 +1,13 @@
 from flask import Flask, request, jsonify
 import sqlite3
 from datetime import datetime, timezone
+import psycopg2
+import os
+
+
+def get_pg_connection():
+    return psycopg2.connect(os.environ["POSTGRES_URL"])
+
 
 # # 建立資料庫與資料表，只需要執行一次
 # conn = sqlite3.connect('dialogues.db')
@@ -18,6 +25,22 @@ from datetime import datetime, timezone
 # conn.close()
 
 # print("✅ 資料庫已建立成功！")
+
+def init_postgres():
+    conn = psycopg2.connect(os.environ["POSTGRES_URL"])
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS dialogues (
+            id SERIAL PRIMARY KEY,
+            session_id TEXT,
+            prompt_text TEXT,
+            user_response TEXT,
+            timestamp TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    print("✅ PostgreSQL 資料表已初始化")
 
 ###創建app
 app = Flask(__name__)
@@ -67,6 +90,20 @@ def save_dialogue():
     conn.close()
     print("📝 資料儲存成功！") 
 
+    # ✅ 寫入 PostgreSQL
+    try:
+        conn_pg = get_pg_connection()
+        c2 = conn_pg.cursor()
+        c2.execute('''
+            INSERT INTO dialogues (session_id, prompt_text, user_response, timestamp)
+            VALUES (%s, %s, %s, %s)
+        ''', (session_id, prompt_text, user_response, timestamp))
+        conn_pg.commit()
+        conn_pg.close()
+        print("📝 PostgreSQL 儲存成功")
+    except Exception as e:
+        print(f"⚠️ PostgreSQL 儲存失敗：{e}")
+
     return jsonify({"status": "received"}), 200
 
 @app.route('/list_dialogues', methods=['GET'])
@@ -85,5 +122,9 @@ def list_dialogues():
 
     return jsonify(results)
 
+@app.route('/init_postgres')
+def trigger_init():
+    init_postgres()
+    return "PostgreSQL 資料表初始化完成"
 
 app.run(host='0.0.0.0', port=3000)
