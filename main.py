@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import sqlite3
+from datetime import datetime, timezone
 
 # # 建立資料庫與資料表，只需要執行一次
 # conn = sqlite3.connect('dialogues.db')
@@ -31,8 +32,7 @@ def save_dialogue():
     user_response = data.get("user_response")
 
     # 取得 API 接收到的當地時間（台灣）
-    tz = pytz.timezone("Asia/Taipei")
-    timestamp = datetime.now(tz).isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     # 確認資料有被接收到
     print("✅ 收到資料：")
